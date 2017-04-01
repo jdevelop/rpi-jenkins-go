@@ -43,7 +43,7 @@ func NewJenkinsBuildStatus(urlS string, username string, password string) Jenkin
 func (st JenkinsBuildContext) ResolveBuildStatus() JenkinsBuildStatus {
 	lastBuild := getLastBuildUrl(retrieveStatus(st, st.url+"/api/json?tree=lastBuild[url]"))
 	fmt.Println("Last build URL is " + lastBuild)
-	return parseBuildStatus(retrieveStatus(st, lastBuild+"/api/json?tree=result"))
+	return parseBuildStatus(retrieveStatus(st, lastBuild+"/api/json?tree=result,number"))
 }
 
 func retrieveStatus(conf JenkinsBuildContext, url string) string {
@@ -63,7 +63,8 @@ func getLastBuildUrl(doc string) string {
 func parseBuildStatus(doc string) JenkinsBuildStatus {
 	parser := getParser(doc)
 	status := parser.Path("result").Data().(string)
-	return JenkinsBuildStatus{status, 1}
+	number := parser.Path("number").Data().(float64)
+	return JenkinsBuildStatus{status, int(number)}
 }
 
 func getParser(doc string) (*gabs.Container) {
