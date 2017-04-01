@@ -32,7 +32,7 @@ func displayBuildStatus(status bs.JenkinsBuildStatus, ntf ntf.BuildStatusNotific
 
 // -----------------------------------------------------------------------------------------------------
 
-func setup() (bs.BuildStatusProvider, ntf.BuildStatusNotification) {
+func setup() (statusProvider bs.BuildStatusProvider, statusNotifier ntf.BuildStatusNotification) {
 	urlPtr := flag.String("url", "", "URL for Jenkins")
 	piOkPtr := flag.Int("led-success", -1, "Success LED pin number")
 	piFailPtr := flag.Int("led-failure", -1, "Failed LED pin number")
@@ -40,13 +40,9 @@ func setup() (bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 	lcdEPin := flag.String("lcd-e-pin", "", "LCD strobe pin")
 	lcdRsPin := flag.String("lcd-rs-pin", "", "LCD strobe pin")
 	flag.Parse()
-	var (
-		statusNotifier ntf.BuildStatusNotification
-		statusProvider bs.BuildStatusProvider
-	)
 
 	if *lcdDataPins != "" {
-		statusNotifier = ntf.NewLCD(*lcdRsPin, *lcdEPin, strings.Split(*lcdDataPins,","))
+		statusNotifier = ntf.NewLCD(*lcdRsPin, *lcdEPin, strings.Split(*lcdDataPins, ","))
 	} else if *piOkPtr == -1 || *piFailPtr == -1 {
 		statusNotifier = ntf.NewConsole()
 	} else {
@@ -60,8 +56,7 @@ func setup() (bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 		var username, apikey = authConfig()
 		statusProvider = bs.NewJenkinsBuildStatus(*urlPtr, username, apikey)
 	}
-
-	return statusProvider, statusNotifier
+	return
 }
 
 func main() {
