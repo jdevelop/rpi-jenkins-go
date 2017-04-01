@@ -2,21 +2,19 @@ package notification
 
 import (
 	"fmt"
-	"time"
-	"math/rand"
+	bs "github.com/jdevelop/rpi-jenkins-go/buildstatus"
 )
 
 type Console struct{}
 
 func NewConsole() Console {
-	rand.Seed(time.Now().UTC().UnixNano())
 	return Console{}
 }
 
-func (c Console) BuildSuccess(buildId string) {
-	fmt.Println("SUCCESS:" + buildId)
+func (c Console) BuildSuccess(status bs.JenkinsBuildStatus) {
+	fmt.Printf("%s : %d", status.Status, status.BuildId)
 }
 
-func (c Console) BuildFailed(buildId string) {
-	fmt.Println("FAILURE: " + buildId)
+func (c Console) BuildFailed(status bs.JenkinsBuildStatus) {
+	c.BuildSuccess(status)
 }

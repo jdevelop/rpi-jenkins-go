@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stianeikeland/go-rpio"
 	"os"
+	"github.com/jdevelop/rpi-jenkins-go/buildstatus"
 )
 
 type PiLed struct {
@@ -33,14 +34,18 @@ func NewPi(piOk PiLed, piFail PiLed) Pi {
 	return Pi{piOk, piFail}
 }
 
-func (p Pi) BuildSuccess(buildId string) {
-	fmt.Println("SUCCESS:" + buildId)
+func debug(status buildstatus.JenkinsBuildStatus) {
+	fmt.Printf("%s ⇒ %d", status.Status, status.BuildId)
+}
+
+func (p Pi) BuildSuccess(status buildstatus.JenkinsBuildStatus) {
+	debug(status)
 	p.piOkLed.Led.High()
 	p.piFailLed.Led.Low()
 }
 
-func (p Pi) BuildFailed(buildId string) {
-	fmt.Println("FAIL:" + buildId)
+func (p Pi) BuildFailed(status buildstatus.JenkinsBuildStatus) {
+	debug(status)
 	p.piOkLed.Led.Low()
 	p.piFailLed.Led.High()
 }

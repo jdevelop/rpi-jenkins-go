@@ -3,7 +3,10 @@ package main
 import (
 	bs "github.com/jdevelop/rpi-jenkins-go/buildstatus"
 	ntf "github.com/jdevelop/rpi-jenkins-go/notification"
+	"math/rand"
+	"time"
 	"flag"
+	"strings"
 	"github.com/spf13/viper"
 )
 
@@ -18,12 +21,12 @@ func authConfig() (string, string) {
 	}
 }
 
-func displayBuildStatus(buildId string, status string, ntf ntf.BuildStatusNotification) {
-	switch status {
+func displayBuildStatus(status bs.JenkinsBuildStatus, ntf ntf.BuildStatusNotification) {
+	switch status.Status {
 	case "SUCCESS":
-		ntf.BuildSuccess(buildId)
+		ntf.BuildSuccess(status)
 	case "FAILURE":
-		ntf.BuildFailed(buildId)
+		ntf.BuildFailed(status)
 	}
 }
 
@@ -31,30 +34,38 @@ func displayBuildStatus(buildId string, status string, ntf ntf.BuildStatusNotifi
 
 func setup() (bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 	urlPtr := flag.String("url", "", "URL for Jenkins")
-	piOkPtr := flag.Int("pi-success", -1, "Success Pin number")
-	piFailPtr := flag.Int("pi-failure", -1, "Failed pin number")
+	piOkPtr := flag.Int("led-success", -1, "Success LED pin number")
+	piFailPtr := flag.Int("led-failure", -1, "Failed LED pin number")
+	lcdDataPins := flag.String("lcd-data-pin", "", "LCD Data Pins, comma-separated")
+	lcdEPin := flag.String("lcd-e-pin", "", "LCD strobe pin")
+	lcdRsPin := flag.String("lcd-rs-pin", "", "LCD strobe pin")
 	flag.Parse()
 	var (
-		statusNotificator ntf.BuildStatusNotification
-		statusProvider    bs.BuildStatusProvider
+		statusNotifier ntf.BuildStatusNotification
+		statusProvider bs.BuildStatusProvider
 	)
-	if *piOkPtr == -1 || *piFailPtr == -1 {
-		statusNotificator = ntf.NewConsole()
+
+	if *lcdDataPins != "" {
+		statusNotifier = ntf.NewLCD(*lcdRsPin, *lcdEPin, strings.Split(*lcdDataPins,","))
+	} else if *piOkPtr == -1 || *piFailPtr == -1 {
+		statusNotifier = ntf.NewConsole()
 	} else {
 		piOk, piFail := ntf.SetupLeds(*piOkPtr, *piFailPtr)
-		statusNotificator = ntf.NewPi(piOk, piFail)
+		statusNotifier = ntf.NewPi(piOk, piFail)
 	}
 	if *urlPtr == "" {
+		rand.Seed(time.Now().UTC().UnixNano())
 		statusProvider = bs.FakeBuildStatus{}
 	} else {
 		var username, apikey = authConfig()
 		statusProvider = bs.NewJenkinsBuildStatus(*urlPtr, username, apikey)
 	}
-	return statusProvider, statusNotificator
+
+	return statusProvider, statusNotifier
 }
 
 func main() {
 	provider, ntfImpl := setup()
-	buildId, buildStatus := provider.ResolveBuildStatus()
-	displayBuildStatus(buildId, buildStatus, ntfImpl)
+	buildStatus := provider.ResolveBuildStatus()
+	displayBuildStatus(buildStatus, ntfImpl)
 }

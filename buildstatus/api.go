@@ -4,44 +4,49 @@ import (
 	"math/rand"
 	"io/ioutil"
 	"net/http"
-	"encoding/json"
+	"github.com/Jeffail/gabs"
 	"fmt"
 )
 
 type BuildStatusProvider interface {
-	ResolveBuildStatus() (string, string)
+	ResolveBuildStatus() JenkinsBuildStatus
 }
 
 type FakeBuildStatus struct{}
 
-func (st FakeBuildStatus) ResolveBuildStatus() (string, string) {
+func (st FakeBuildStatus) ResolveBuildStatus() JenkinsBuildStatus {
 	diceRoll := rand.Intn(2)
-	if diceRoll == 0 {
-		return "0", "SUCCESS"
+	if diceRoll == 1 {
+		return JenkinsBuildStatus{"SUCCESS", 0}
 	} else {
-		return "1", "FAILURE"
+		return JenkinsBuildStatus{"FAILURE", 1}
 	}
 }
 
 // -----------------------------------------------------------------------------------------------------
 
-type JenkinsBuildStatus struct {
+type JenkinsBuildContext struct {
 	url      string
 	username string
 	password string
 }
 
-func NewJenkinsBuildStatus(urlS string, username string, password string) JenkinsBuildStatus {
-	return JenkinsBuildStatus{urlS, username, password}
+type JenkinsBuildStatus struct {
+	Status  string
+	BuildId int
 }
 
-func (st JenkinsBuildStatus) ResolveBuildStatus() (string, string) {
-	lastBuild := getLastBuildUrl(retrieveStatus(st, st.url + "/api/json?tree=lastBuild[url]"))
+func NewJenkinsBuildStatus(urlS string, username string, password string) JenkinsBuildContext {
+	return JenkinsBuildContext{urlS, username, password}
+}
+
+func (st JenkinsBuildContext) ResolveBuildStatus() JenkinsBuildStatus {
+	lastBuild := getLastBuildUrl(retrieveStatus(st, st.url+"/api/json?tree=lastBuild[url]"))
 	fmt.Println("Last build URL is " + lastBuild)
-	return "1", parseBuildStatus(retrieveStatus(st, lastBuild + "/api/json?tree=result"))
+	return parseBuildStatus(retrieveStatus(st, lastBuild+"/api/json?tree=result"))
 }
 
-func retrieveStatus(conf JenkinsBuildStatus, url string) string {
+func retrieveStatus(conf JenkinsBuildContext, url string) string {
 	client := http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.SetBasicAuth(conf.username, conf.password)
@@ -52,15 +57,19 @@ func retrieveStatus(conf JenkinsBuildStatus, url string) string {
 }
 
 func getLastBuildUrl(doc string) string {
-	return asEthernalShit(doc)["lastBuild"].(map[string]interface{})["url"].(string)
+	return getParser(doc).Path("lastBuild.url").Data().(string)
 }
 
-func parseBuildStatus(doc string) string {
-	return asEthernalShit(doc)["result"].(string)
+func parseBuildStatus(doc string) JenkinsBuildStatus {
+	parser := getParser(doc)
+	status := parser.Path("result").Data().(string)
+	return JenkinsBuildStatus{status, 1}
 }
 
-func asEthernalShit(doc string) map[string]interface{} {
-	var jsObj map[string]interface{}
-	json.Unmarshal([]byte(doc), &jsObj)
-	return jsObj
+func getParser(doc string) (*gabs.Container) {
+	parser, err := gabs.ParseJSON([]byte(doc))
+	if err != nil {
+		panic("Error parsing " + doc + " => " + err.Error())
+	}
+	return parser
 }
