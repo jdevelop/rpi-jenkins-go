@@ -8,6 +8,7 @@ import (
 	"flag"
 	"strings"
 	"github.com/spf13/viper"
+	"strconv"
 )
 
 func authConfig() (string, string) {
@@ -37,12 +38,17 @@ func setup() (statusProvider bs.BuildStatusProvider, statusNotifier ntf.BuildSta
 	piOkPtr := flag.Int("led-success", -1, "Success LED pin number")
 	piFailPtr := flag.Int("led-failure", -1, "Failed LED pin number")
 	lcdDataPins := flag.String("lcd-data-pin", "", "LCD Data Pins, comma-separated")
-	lcdEPin := flag.String("lcd-e-pin", "", "LCD strobe pin")
-	lcdRsPin := flag.String("lcd-rs-pin", "", "LCD strobe pin")
+	lcdEPin := flag.Int("lcd-e-pin", -1, "LCD strobe pin")
+	lcdRsPin := flag.Int("lcd-rs-pin", -1, "LCD strobe pin")
 	flag.Parse()
 
 	if *lcdDataPins != "" {
-		statusNotifier = ntf.NewLCD(*lcdRsPin, *lcdEPin, strings.Split(*lcdDataPins, ","))
+		pins := strings.Split(*lcdDataPins, ",")
+		intPins := make([]int, len(pins))
+		for i, v := range pins {
+			intPins[i], _ = strconv.Atoi(v)
+		}
+		statusNotifier = ntf.NewLCD(*lcdRsPin, *lcdEPin, intPins)
 	} else if *piOkPtr == -1 || *piFailPtr == -1 {
 		statusNotifier = ntf.NewConsole()
 	} else {

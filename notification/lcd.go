@@ -2,7 +2,7 @@ package notification
 
 import (
 	"fmt"
-	l "github.com/jdevelop/gobot-lcd/lcd"
+	l "github.com/jdevelop/golang-rpi-extras/lcd_hd44780"
 	bs "github.com/jdevelop/rpi-jenkins-go/buildstatus"
 )
 
@@ -10,21 +10,15 @@ type LCD struct {
 	l.PiLCD4
 }
 
-func NewLCD(rsPin string, enablePin string, data []string) LCD {
-	var dataPins []l.Pin = make([]l.Pin, len(data))
-	for i, v := range data {
-		dataPins[i] = l.Pin{v}
+func NewLCD(rsPin int, enablePin int, data []int) LCD {
+	lcd, err := l.NewLCD4(data, rsPin, enablePin)
+
+	if err != nil {
+		panic(err.Error())
 	}
 
-	lcd := LCD{
-		l.PiLCD4{
-			DataPins:  dataPins,
-			RsPin:     l.Pin{rsPin},
-			EnablePin: l.Pin{enablePin},
-		},
-	}
 	lcd.Init()
-	return lcd
+	return LCD{lcd}
 }
 
 func printStatus(r *LCD, status *bs.JenkinsBuildStatus) {
