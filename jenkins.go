@@ -33,7 +33,7 @@ func displayBuildStatus(status bs.JenkinsBuildStatus, ntf ntf.BuildStatusNotific
 
 // -----------------------------------------------------------------------------------------------------
 
-func setup() (statusProvider bs.BuildStatusProvider, statusNotifier ntf.BuildStatusNotification) {
+func setup() (bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 	urlPtr := flag.String("url", "", "URL for Jenkins")
 	piOkPtr := flag.Int("led-success", -1, "Success LED pin number")
 	piFailPtr := flag.Int("led-failure", -1, "Failed LED pin number")
@@ -42,19 +42,26 @@ func setup() (statusProvider bs.BuildStatusProvider, statusNotifier ntf.BuildSta
 	lcdRsPin := flag.Int("lcd-rs-pin", -1, "LCD strobe pin")
 	flag.Parse()
 
+	statusNotifier := ntf.NewStack(3)
+
 	if *lcdDataPins != "" {
 		pins := strings.Split(*lcdDataPins, ",")
 		intPins := make([]int, len(pins))
 		for i, v := range pins {
 			intPins[i], _ = strconv.Atoi(v)
 		}
-		statusNotifier = ntf.NewLCD(*lcdRsPin, *lcdEPin, intPins)
-	} else if *piOkPtr == -1 || *piFailPtr == -1 {
-		statusNotifier = ntf.NewConsole()
-	} else {
-		piOk, piFail := ntf.SetupLeds(*piOkPtr, *piFailPtr)
-		statusNotifier = ntf.NewPi(piOk, piFail)
+		statusNotifier.Register(ntf.NewLCD(*lcdRsPin, *lcdEPin, intPins))
 	}
+
+	if *piOkPtr != -1 && *piFailPtr != -1 {
+		piOk, piFail := ntf.SetupLeds(*piOkPtr, *piFailPtr)
+		statusNotifier.Register(ntf.NewPi(piOk, piFail))
+	}
+
+	statusNotifier.Register(ntf.NewConsole())
+
+	var statusProvider bs.BuildStatusProvider
+
 	if *urlPtr == "" {
 		rand.Seed(time.Now().UTC().UnixNano())
 		statusProvider = bs.FakeBuildStatus{}
@@ -62,7 +69,8 @@ func setup() (statusProvider bs.BuildStatusProvider, statusNotifier ntf.BuildSta
 		var username, apikey = authConfig()
 		statusProvider = bs.NewJenkinsBuildStatus(*urlPtr, username, apikey)
 	}
-	return
+
+	return statusProvider, statusNotifier
 }
 
 func main() {
