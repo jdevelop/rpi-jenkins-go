@@ -21,18 +21,15 @@ func NewLCD(rsPin int, enablePin int, data []int) LCD {
 	return LCD{lcd}
 }
 
-func printStatus(r *LCD, status *bs.JenkinsBuildStatus) {
-	fmt.Println(status.Status)
-	r.Cls()
-	r.Print(status.Status)
-	r.SetCursor(1, 0)
-	r.Print(fmt.Sprintf("BUILD: %d", status.BuildId))
+func printStatus(r *LCD, status *bs.JenkinsBuildStatus, line int) {
+	r.SetCursor(uint8(line), 0)
+	r.Print(fmt.Sprintf("BUILD: %d / %s", status.BuildId, status.Status))
 }
 
-func (r LCD) BuildSuccess(status bs.JenkinsBuildStatus) {
-	printStatus(&r, &status)
+func (r LCD) BuildSuccess(idx int, status bs.JenkinsBuildStatus) {
+	printStatus(&r, &status, idx)
 }
 
-func (r LCD) BuildFailed(status bs.JenkinsBuildStatus) {
-	printStatus(&r, &status)
+func (r LCD) BuildFailed(idx int, status bs.JenkinsBuildStatus) {
+	printStatus(&r, &status, idx)
 }

@@ -3,7 +3,7 @@ package notification
 import bs "github.com/jdevelop/rpi-jenkins-go/buildstatus"
 
 type BuildStatusNotification interface {
-	BuildSuccess(status bs.JenkinsBuildStatus)
+	BuildSuccess(idx int, status bs.JenkinsBuildStatus)
 
-	BuildFailed(buildId bs.JenkinsBuildStatus)
+	BuildFailed(idx int, buildId bs.JenkinsBuildStatus)
 }

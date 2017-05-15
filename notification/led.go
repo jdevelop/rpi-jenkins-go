@@ -28,23 +28,30 @@ func SetupLeds(ledOkIdx int, ledFailIdx int) (PiLed, PiLed) {
 type Pi struct {
 	piOkLed   PiLed
 	piFailLed PiLed
+	buildId   int
 }
 
-func NewPi(piOk PiLed, piFail PiLed) Pi {
-	return Pi{piOk, piFail}
+func NewPi(piOk PiLed, piFail PiLed, idx int) Pi {
+	return Pi{piOk, piFail, idx}
 }
 
 func debug(status buildstatus.JenkinsBuildStatus) {
 	fmt.Printf("%s ⇒ %d", status.Status, status.BuildId)
 }
 
-func (p Pi) BuildSuccess(status buildstatus.JenkinsBuildStatus) {
+func (p Pi) BuildSuccess(idx int, status buildstatus.JenkinsBuildStatus) {
+	if idx != p.buildId {
+		return
+	}
 	debug(status)
 	p.piOkLed.Led.High()
 	p.piFailLed.Led.Low()
 }
 
-func (p Pi) BuildFailed(status buildstatus.JenkinsBuildStatus) {
+func (p Pi) BuildFailed(idx int, status buildstatus.JenkinsBuildStatus) {
+	if idx != p.buildId {
+		return
+	}
 	debug(status)
 	p.piOkLed.Led.Low()
 	p.piFailLed.Led.High()

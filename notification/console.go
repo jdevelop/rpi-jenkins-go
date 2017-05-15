@@ -11,10 +11,10 @@ func NewConsole() Console {
 	return Console{}
 }
 
-func (c Console) BuildSuccess(status bs.JenkinsBuildStatus) {
-	fmt.Printf("%s : %d", status.Status, status.BuildId)
+func (c Console) BuildSuccess(idx int, status bs.JenkinsBuildStatus) {
+	fmt.Printf("%d : %s : %d\n", idx, status.Status, status.BuildId)
 }
 
-func (c Console) BuildFailed(status bs.JenkinsBuildStatus) {
-	c.BuildSuccess(status)
+func (c Console) BuildFailed(idx int, status bs.JenkinsBuildStatus) {
+	c.BuildSuccess(idx, status)
 }
