@@ -23,7 +23,7 @@ func NewLCD(rsPin int, enablePin int, data []int) LCD {
 
 func printStatus(r *LCD, status *bs.JenkinsBuildStatus, line int) {
 	r.SetCursor(uint8(line), 0)
-	r.Print(fmt.Sprintf("BUILD: %d / %s", status.BuildId, status.Status))
+	r.Print(fmt.Sprintf("#%d / %s", status.BuildId, status.Status))
 }
 
 func (r LCD) BuildSuccess(idx int, status bs.JenkinsBuildStatus) {

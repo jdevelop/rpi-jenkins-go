@@ -9,6 +9,7 @@ import (
 	"strings"
 	"github.com/spf13/viper"
 	"strconv"
+	"fmt"
 )
 
 func authConfig() (string, string) {
@@ -61,6 +62,7 @@ func (arg *intArray) Set(src string) error {
 func setup() ([]bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 	var urlPtr stringArray
 	flag.Var(&urlPtr, "urls", "URLs for Jenkins")
+	fakeUrls := flag.Int("fake-urls", -1, "fake build urls")
 	var piOkPtr intArray
 	flag.Var(&piOkPtr, "led-success", "Success LED pin numbers")
 	var piFailPtr intArray
@@ -77,6 +79,7 @@ func setup() ([]bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 	var LCD LcdBuilder
 
 	if *lcdDataPins != "" {
+		fmt.Println("Configure LCD")
 		pins := strings.Split(*lcdDataPins, ",")
 		intPins := make([]int, len(pins))
 		for i, v := range pins {
@@ -94,15 +97,30 @@ func setup() ([]bs.BuildStatusProvider, ntf.BuildStatusNotification) {
 			piOk, piFail := ntf.SetupLeds(v, piFailPtr[i])
 			statusNotifier.Register(ntf.NewPi(piOk, piFail, i))
 		}
+	} else {
+		fmt.Println("No LED configured")
 	}
 
 	statusNotifier.Register(ntf.NewConsole())
 
 	statusProvider := make([]bs.BuildStatusProvider, 0)
 
+	var myMax = func(l int, r int) int {
+		if l < r {
+			return r
+		} else {
+			return l
+		}
+	}
+
 	if len(urlPtr) == 0 {
 		rand.Seed(time.Now().UTC().UnixNano())
-		statusProvider = append(statusProvider, bs.FakeBuildStatus{})
+		for i := 0; i < myMax(1, *fakeUrls); i++ {
+			statusProvider = append(statusProvider, bs.FakeBuildStatus{})
+			if *lcdDataPins != "" {
+				LCD(i)
+			}
+		}
 	} else {
 		var username, apikey = authConfig()
 		for i, v := range urlPtr {
